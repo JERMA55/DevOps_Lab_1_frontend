@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DevOps — версия 1.0</title>
+  <title>DevOps — версия 2.0</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; background: #edf2f7; color: #233047; font: 17px/1.5 Arial, sans-serif; }
@@ -21,12 +21,16 @@
 <main>
   <span class="muted">Лабораторная работа № 1 · Git</span>
   <h1>Обмен данными с сервером</h1>
-  <p class="muted">Frontend 1.0 · сервер 127.0.0.1:5000</p>
+  <p class="muted">Frontend 2.0 · сервер 127.0.0.1:5000</p>
   <form id="send-form">
     <label for="text">Текст для сохранения</label>
     <input id="text" type="text" placeholder="Введите сообщение" required>
     <button id="send-button" type="submit">Отправить</button>
   </form>
+  <hr>
+  <button id="read-button" type="button">Получить данные</button>
+  <label for="out">Содержимое файла data.txt</label>
+  <textarea id="out" readonly placeholder="Нажмите «Получить данные»"></textarea>
   <p id="status" role="status" aria-live="polite"></p>
 </main>
 <script>
@@ -58,6 +62,16 @@ document.getElementById('send-form').addEventListener('submit', async (event) =>
   try {
     const data = await apiRequest({method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
     showStatus(data.message); input.value = '';
+  } catch (error) { showStatus(error.message, true); }
+  finally { button.disabled = false; }
+});
+document.getElementById('read-button').addEventListener('click', async () => {
+  const button = document.getElementById('read-button');
+  button.disabled = true;
+  try {
+    const data = await apiRequest();
+    document.getElementById('out').value = data.result;
+    showStatus(data.result ? 'Данные получены.' : 'Файл пока пуст. Сначала отправьте сообщение.');
   } catch (error) { showStatus(error.message, true); }
   finally { button.disabled = false; }
 });
