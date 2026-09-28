@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevOps — версия 1.0</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #edf2f7; color: #233047; font: 17px/1.5 Arial, sans-serif; }
+    main { max-width: 720px; margin: 55px auto; padding: 32px; background: white; border-radius: 16px; }
+    h1 { margin: 8px 0; font-size: 30px; } label { display: block; margin: 20px 0 8px; }
+    input, textarea { width: 100%; padding: 12px; border: 1px solid #a7b5c8; border-radius: 7px; font: inherit; }
+    textarea { min-height: 180px; resize: vertical; }
+    button { padding: 11px 20px; margin: 12px 0; border: 0; border-radius: 7px; background: #235bc9; color: white; font: inherit; cursor: pointer; }
+    button:disabled { opacity: .6; cursor: wait; }
+    #status { min-height: 26px; } .muted { color: #60718b; } hr { border: 0; border-top: 1px solid #dfe5ee; margin-top: 24px; }
+    @media (max-width: 760px) { main { margin: 16px; padding: 22px; } }
+  </style>
+</head>
+<body>
+<main>
+  <span class="muted">Лабораторная работа № 1 · Git</span>
+  <h1>Обмен данными с сервером</h1>
+  <p class="muted">Frontend 1.0 · сервер 127.0.0.1:5000</p>
+  <form id="send-form">
+    <label for="text">Текст для сохранения</label>
+    <input id="text" type="text" placeholder="Введите сообщение" required>
+    <button id="send-button" type="submit">Отправить</button>
+  </form>
+  <p id="status" role="status" aria-live="polite"></p>
+</main>
+<script>
+const API = 'http://127.0.0.1:5000/api/data';
+const statusField = document.getElementById('status');
+function showStatus(message, error = false) {
+  statusField.textContent = message;
+  statusField.style.color = error ? '#b42318' : '#187044';
+}
+async function apiRequest(options = {}) {
+  let response;
+  try { response = await fetch(API, options); }
+  catch { throw new Error('Нет связи с сервером. Запустите backend/app.py.'); }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || (response.status === 405
+      ? 'Эта версия backend не поддерживает чтение. Переключите backend на v2.0.'
+      : `Ошибка сервера: ${response.status}`));
+  }
+  return data;
+}
+document.getElementById('send-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const input = document.getElementById('text');
+  const text = input.value.trim();
+  if (!text) { showStatus('Введите текст перед отправкой.', true); return; }
+  const button = document.getElementById('send-button');
+  button.disabled = true;
+  try {
+    const data = await apiRequest({method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
+    showStatus(data.message); input.value = '';
+  } catch (error) { showStatus(error.message, true); }
+  finally { button.disabled = false; }
+});
+</script>
+</body>
+</html>
