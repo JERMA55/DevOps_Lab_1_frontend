@@ -1,80 +1,71 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DevOps — версия 2.0</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; background: #edf2f7; color: #233047; font: 17px/1.5 Arial, sans-serif; }
-    main { max-width: 720px; margin: 55px auto; padding: 32px; background: white; border-radius: 16px; }
-    h1 { margin: 8px 0; font-size: 30px; } label { display: block; margin: 20px 0 8px; }
-    input, textarea { width: 100%; padding: 12px; border: 1px solid #a7b5c8; border-radius: 7px; font: inherit; }
-    textarea { min-height: 180px; resize: vertical; }
-    button { padding: 11px 20px; margin: 12px 0; border: 0; border-radius: 7px; background: #235bc9; color: white; font: inherit; cursor: pointer; }
-    button:disabled { opacity: .6; cursor: wait; }
-    #status { min-height: 26px; } .muted { color: #60718b; } hr { border: 0; border-top: 1px solid #dfe5ee; margin-top: 24px; }
-    @media (max-width: 760px) { main { margin: 16px; padding: 22px; } }
-  </style>
+    <meta charset="UTF-8" />
+    <title>Frontend v1.0</title>
+    <style>
+        body { font-family: sans-serif; max-width: 640px; margin: 2rem auto; }
+        input, button { padding: 6px 10px; margin: 4px 0; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 6px; }
+    </style>
 </head>
 <body>
-<main>
-  <span class="muted">Лабораторная работа № 1 · Git</span>
-  <h1>Обмен данными с сервером</h1>
-  <p class="muted">Frontend 2.0 · сервер 127.0.0.1:5000</p>
-  <form id="send-form">
-    <label for="text">Текст для сохранения</label>
-    <input id="text" type="text" placeholder="Введите сообщение" required>
-    <button id="send-button" type="submit">Отправить</button>
-  </form>
-  <hr>
-  <button id="read-button" type="button">Получить данные</button>
-  <label for="out">Содержимое файла data.txt</label>
-  <textarea id="out" readonly placeholder="Нажмите «Получить данные»"></textarea>
-  <p id="status" role="status" aria-live="polite"></p>
-</main>
-<script>
-const API = 'http://127.0.0.1:5000/api/data';
-const statusField = document.getElementById('status');
-function showStatus(message, error = false) {
-  statusField.textContent = message;
-  statusField.style.color = error ? '#b42318' : '#187044';
-}
-async function apiRequest(options = {}) {
-  let response;
-  try { response = await fetch(API, options); }
-  catch { throw new Error('Нет связи с сервером. Запустите backend/app.py.'); }
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data.error || (response.status === 405
-      ? 'Эта версия backend не поддерживает чтение. Переключите backend на v2.0.'
-      : `Ошибка сервера: ${response.status}`));
-  }
-  return data;
-}
-document.getElementById('send-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const input = document.getElementById('text');
-  const text = input.value.trim();
-  if (!text) { showStatus('Введите текст перед отправкой.', true); return; }
-  const button = document.getElementById('send-button');
-  button.disabled = true;
-  try {
-    const data = await apiRequest({method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
-    showStatus(data.message); input.value = '';
-  } catch (error) { showStatus(error.message, true); }
-  finally { button.disabled = false; }
-});
-document.getElementById('read-button').addEventListener('click', async () => {
-  const button = document.getElementById('read-button');
-  button.disabled = true;
-  try {
-    const data = await apiRequest();
-    document.getElementById('out').value = data.result;
-    showStatus(data.result ? 'Данные получены.' : 'Файл пока пуст. Сначала отправьте сообщение.');
-  } catch (error) { showStatus(error.message, true); }
-  finally { button.disabled = false; }
-});
-</script>
+    <h1>Frontend v2.0</h1>
+
+    <section>
+        <h2>Отправка данных</h2>
+        <input id="input" type="text" placeholder="Введите текст" />
+        <button id="send">Отправить</button>
+        <h3>Ответ сервера:</h3>
+        <pre id="sendLog">—</pre>
+    </section>
+
+    <section>
+        <h2>Просмотр сохранённых данных</h2>
+        <input id="filter" type="text" placeholder="Необязательный фильтр" />
+        <button id="load">Загрузить данные</button>
+        <h3>Содержимое data.txt:</h3>
+        <pre id="loadLog">—</pre>
+    </section>
+
+    <script>
+        const API = "/api/data";
+
+        document.getElementById("send").addEventListener("click", async () => {
+            const text = document.getElementById("input").value;
+            try {
+                const res = await fetch(API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+                document.getElementById("sendLog").textContent = JSON.stringify(data, null, 2);
+            } catch (e) {
+                document.getElementById("sendLog").textContent = "Ошибка: " + e.message;
+            }
+        });
+
+        document.getElementById("load").addEventListener("click", async () => {
+            const filter = document.getElementById("filter").value.toLowerCase();
+            try {
+                const res = await fetch(API, { method: "GET" });
+                if (!res.ok) {
+                    document.getElementById("loadLog").textContent =
+                        `Ошибка сервера: ${res.status} ${res.statusText}`;
+                    return;
+                }
+                const data = await res.json();
+                const items = (data.content || []).filter(
+                    (s) => !filter || s.toLowerCase().includes(filter)
+                );
+                document.getElementById("loadLog").textContent = items.length
+                    ? items.join("\n")
+                    : "(пусто)";
+            } catch (e) {
+                document.getElementById("loadLog").textContent = "Ошибка: " + e.message;
+            }
+        });
+    </script>
 </body>
 </html>
